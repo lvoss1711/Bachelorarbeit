@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <!-- --- Document Setup & Base Styles --- -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Puppet - Storyboard Druckansicht</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* --- On Screen Appearence (Web-Interface) --- */
+    /* Defines the on-screen appearance of the storyboard frames before printing. */
+    .storyboard-frame {
+      width: 320px;
+      box-sizing: border-box;
+      background: #f1f5f9;
+      border-radius: 0.75rem;
+      padding: 0.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+    }
+    
+    .scene-block {
+      margin-bottom: 3rem;
+    }
+
+    /* --- Print Media Query Overrides --- */
+    /* These rules strictly apply only when the user invokes the browser's print function. 
+       They remove backgrounds, shadows, and UI elements (like the nav bar) to save ink 
+       and reformat the grid to fit nicely onto A4 paper. */
+    @media print {
+      @page {
+        margin: 10mm;
+      }
+
+      * { box-shadow: none !important; }
+      body { 
+        background: white !important; 
+        color: black !important; 
+        margin: 0 !important; 
+        padding: 0 !important;
+      }
+      
+      .main-nav { display: none !important; }
+      .page-container { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; }
+      h1#session-title { font-size: 1.8rem !important; margin-bottom: 0.5rem !important; color: black !important; text-shadow: none !important; }
+      h2.scene-title { color: black !important; text-shadow: none !important; border-bottom: 2px solid #000 !important; font-size: 1.3rem !important; margin-bottom: 1rem !important; margin-top: 0 !important; }
+      .scene-container { background: transparent !important; padding: 0 !important; border: none !important; width: 100% !important; }
+
+      /* Force page breaks before new scenes, unless it's the very first scene on the page. */
+      .scene-block {
+        page-break-before: always !important;
+        break-before: page !important;
+      }
+      .scene-block:first-child {
+        page-break-before: avoid !important;
+        break-before: auto !important;
+      }
+
+      .frames-wrapper {
+        display: block !important; 
+        width: 100% !important;
+        text-align: left !important; 
+      }
+
+      .storyboard-frame {
+        display: inline-block !important; 
+        vertical-align: top !important;
+        
+        width: 240px !important; 
+        margin-right: 15px !important; 
+        margin-bottom: 15px !important;
+        
+        /* Prevent individual frames from being cut in half across two pages. */
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        break-inside: avoid-page !important;
+        
+        border: 1px solid #999 !important;
+        background: white !important;
+        border-radius: 0.5rem !important;
+        padding: 0.3rem !important;
+      }
+
+      .storyboard-frame img {
+        display: block !important;
+        width: 100% !important;
+        height: auto !important;
+        margin-bottom: 0.3rem !important;
+      }
+
+      /* Adds a discreet watermark to the bottom corner of every printed page. */
+      .print-watermark {
+        display: block !important;
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        font-size: 0.8rem;
+        color: #686868; 
+        font-style: italic;
+        z-index: 1000;
+        background: white; 
+        padding: 2px 5px;
+      }
+    }
+  </style>
+</head>
+<body style="background: #ffffff;">
+
+<!-- --- Print Page --- -->
+<!-- Contains the hidden watermark, the navigation bar (hidden during printing), and the target container for the dynamically injected storyboard frames. -->
+<div class="print-watermark">Created with Spielboard</div>
+  
+  <nav class="main-nav">
+    <a href="admin.html" class="nav-icon" title="Zurück zum Dashboard" style="color: white; text-decoration: none; display: flex; align-items: center;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      <span style="margin-left: 0.5rem; font-weight: bold; font-size: 1.2rem;">Zurück</span>
+    </a>
+  </nav>
+
+  <div class="page-container" style="padding-top: 6rem; padding-bottom: 4rem; margin: 0 auto; padding-left: 1rem; padding-right: 1rem; width: 100%; box-sizing: border-box;">
+    <h1 class="neon-text" style="font-size: 3rem; margin-bottom: 2rem;" id="session-title">Storyboard...</h1>
+
+    <div id="scenes-view" style="width: 100%;">
+      <p style="color: black;">Lade Storyboard...</p>
+    </div>
+  </div>
+
+ <script>
+    // --- Data Fetching & Dynamic Rendering ---
+    // Executes as soon as the DOM is ready. 
+    // It extracts the 'session_id' from the URL query parameters and fetches the associated storyboard data from the PHP API[cite: 19].
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+
+      if (!sessionId) {
+        document.getElementById('session-title').innerText = "Keine Session ausgewählt";
+        return;
+      }
+
+      try {
+        const response = await fetch(`api.php?action=get_session_data&session_id=${sessionId}`);
+        const data = await response.json();
+
+        // Update the document title and the H1 header to reflect the specific Proband ID being printed.
+        if (data.success && data.proband_id) {
+            document.getElementById('session-title').innerText = `Storyboard: ${data.proband_id}`;
+            document.title = `Storyboard_${data.proband_id}`;
+        } else {
+            document.getElementById('session-title').innerText = `Storyboard`;
+        }
+
+        const scenesView = document.getElementById('scenes-view');
+        
+        // --- Data Filtering ---
+        // Filters out any frames that were marked as deleted (soft-delete) during the participant's session.
+        const activeFrames = data.success && data.frames 
+          ? data.frames.filter(frame => frame.is_deleted != 1 && frame.is_deleted !== "1")
+          : [];
+
+        if (activeFrames.length > 0) {
+          scenesView.innerHTML = ""; 
+          
+          // --- Scene Grouping ---
+          // Groups the flat array of frames into an object categorized by their Scene ID 
+          // (e.g., frames '1.1' and '1.2' are grouped under '1').
+          const scenes = {};
+          activeFrames.forEach(frame => {
+            const sceneId = frame.scene_frame_id.split('.')[0];
+            if (!scenes[sceneId]) scenes[sceneId] = [];
+            scenes[sceneId].push(frame);
+          });
+
+          // --- HTML Construction ---
+          // Sorts the scenes chronologically, then sorts the frames within each scene.
+          // Iterates through the sorted structure to construct the HTML blocks for printing.
+          Object.keys(scenes).sort((a, b) => a - b).forEach(sceneId => {
+            const sceneBlock = document.createElement('div');
+            sceneBlock.className = "scene-block";
+            
+            let framesHtml = "";
+            
+            scenes[sceneId].sort((a, b) => {
+              const frameA = parseInt(a.scene_frame_id.split('.')[1]);
+              const frameB = parseInt(b.scene_frame_id.split('.')[1]);
+              return frameA - frameB;
+            }).forEach(frame => {
+              
+              // Determines which image to show: prioritizing the AI result, falling back to the raw pose, or showing a placeholder.
+              const mainImg = frame.result_base64 && frame.result_base64.length > 10 ? frame.result_base64 : (frame.pose_base64 && frame.pose_base64.length > 10 ? frame.pose_base64 : '');
+              const imgHtml = mainImg 
+                ? `<img src="${mainImg}" style="width: 100%; aspect-ratio: 1344/768; object-fit: cover; border-radius: 0.4rem; border: 1px solid #000000;">` 
+                : `<div style="width: 100%; aspect-ratio: 1344/768; background: #ccc; border-radius: 0.4rem; display: flex; align-items: center; justify-content: center; color: #333;">Kein Bild</div>`;
+
+              // Adds the reference pose image below the main result if it exists.
+              const poseThumbnailHtml = frame.pose_base64 && frame.pose_base64.length > 10 
+                ? `<img src="${frame.pose_base64}" style="width: 100%; aspect-ratio: 1344/768; object-fit: cover; border-radius: 0.4rem; border: 1px solid color: #142A3F;" title="Referenz-Foto">` 
+                : '';
+
+              framesHtml += `
+                <div class="storyboard-frame">
+                  <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.3rem;">
+                    <span style="font-weight: bold; color: #142A3F; font-size: 0.85rem;">Frame ${frame.scene_frame_id}</span>
+                  </div>
+                  
+                  ${imgHtml}
+                  
+                  ${poseThumbnailHtml ? `
+                    <div style="display: block; width: 100%;">
+                      ${poseThumbnailHtml}
+                    </div>
+                  ` : ''}
+                </div>
+              `;
+            });
+
+            sceneBlock.innerHTML = `
+              <h2 class="scene-title" style="color: black; border-bottom: 2px solid #333; padding-bottom: 0.5rem; margin-bottom: 1rem;">Scene ${sceneId}</h2>
+              <div class="scene-container" style="background: transparent; padding: 0; width: 100%; box-sizing: border-box;">
+                  <div class="frames-wrapper">
+                    ${framesHtml}
+                  </div>
+              </div>
+            `;
+            scenesView.appendChild(sceneBlock);
+          });
+
+        } else {
+          scenesView.innerHTML = "<p style='color: black;'>Es wurden keine aktiven Storyboard-Frames für diese Session gefunden.</p>";
+        }
+
+      } catch (e) {
+        console.error("Fehler beim Laden der Session-Daten:", e);
+        document.getElementById('scenes-view').innerHTML = "<p style='color: black;'>Fehler beim Abrufen der Daten.</p>";
+      }
+    });
+  </script>
+</body>
+</html>

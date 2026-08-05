@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Document setup and stylesheet linking -->
+  <meta charset="UTF-8" />
+  <title>Spielboard - Demographics</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body style="display: flex; flex-direction: column; height: 100vh; background: var(--color-bg-dark); margin: 0; padding: 0; overflow: hidden;">
+  
+  <!-- Main container for the demographics questionnaire -->
+  <div class="page-container" style="display: flex; flex-direction: column; flex: 1; padding: 2rem; max-width: 1100px; margin: 0 auto; width: 100%; box-sizing: border-box;">
+    
+    <h1 class="neon-text" style="font-size: 3rem; margin-bottom: 1.5rem; text-align: center; flex-shrink: 0;">Demographics</h1>
+    
+    <!-- --- Embedded Google Form --- -->
+    <!-- Renders the external demographics survey within an iframe. 
+         This keeps the user within the study environment without navigating away to a new tab. -->
+    <div class="card" style="width: 100%; flex-grow: 1; padding: 0.5rem; overflow: hidden; background: white; border-radius: 1.5rem; margin-bottom: 1.5rem; display: flex; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+      <iframe id="gform" src="https://docs.google.com/forms/d/e/1FAIpQLSdaq_1HJn6hN69IAWtXJUm8O6FimZpxEHon7pNurwYBD1zyug/viewform?embedded=true" width="100%" height="100%" frameborder="0" marginheight="0" marginwidth="0" style="border: none; border-radius: 1rem;">Loading…</iframe>
+    </div>
+
+    <!-- --- Gatekeeper Button --- -->
+    <!-- This button prevents users from advancing to the study before completing the form.
+         It is visually disabled by default (opacity: 0.5, cursor: not-allowed). -->
+    <div style="display: flex; justify-content: center; flex-shrink: 0;">
+        <a href="start.html" id="continue-btn" class="btn-add-scene" style="text-decoration: none; width: 100%; max-width: 400px; opacity: 0.5; cursor: not-allowed; transition: all 0.4s; text-align: center;">
+          Continue to Study
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-left: 0.5rem; vertical-align: middle;">
+            <path d="M5 12h14" /><path d="m12 5 7 7-7 7" />
+          </svg>
+        </a>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const gform = document.getElementById('gform');
+        const continueBtn = document.getElementById('continue-btn');
+
+        let loadCount = 0;
+        let formSubmitted = false;
+
+        // --- Form Submission Tracking ---
+        // A workaround to detect when a Google Form inside an iframe has been submitted.
+        // Because of Cross-Origin Resource Sharing (CORS) rules, we cannot read the iframe's content directly.
+        // Instead, we track the number of times the iframe fires a 'load' event. 
+        // 1st load: The initial form rendering.
+        // 2nd+ load: Occurs when Google redirects the iframe to the "Thank You" confirmation page after submission.
+        // If the loadCount exceeds the threshold, we assume the submission was successful.
+        gform.addEventListener('load', () => {
+            loadCount++;
+            if (loadCount > 2) {
+                formSubmitted = true;
+                
+                // Visually enable the button to indicate the user can now proceed
+                continueBtn.style.opacity = '1';
+                continueBtn.style.cursor = 'pointer';
+                continueBtn.style.background = 'var(--color-yellow)';
+                continueBtn.style.color = 'var(--color-bg-dark)';
+            }
+        });
+
+        // --- Navigation Interception ---
+        // Blocks the default link behavior if the form submission heuristic hasn't passed yet.
+        continueBtn.addEventListener('click', (e) => {
+            if (!formSubmitted) {
+                e.preventDefault();
+                alert('Please complete the Demographics and click "Submit" inside the form before continuing.');
+            }
+        });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,849 @@
+/* === FONTS === */
+/* Defines the custom typography used throughout the application. 
+   'Fredoka' is imported from Google Fonts for standard UI text, 
+   while local .otf and .ttf files are used for thematic display headers. */
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
+
+@font-face {
+  font-family: 'ethnocentric';
+  src: url('../fonts/Ethnocentric-Regular.otf') format('opentype');
+  font-weight: normal; 
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'titleold';
+  src: url('../fonts/WhenTheStarsAlign_PERSONAL_USE_ONLY.otf') format('opentype');
+  font-weight: normal; 
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'title';
+  src: url('../fonts/Jaws-Font/AmityJack.ttf') format('truetype');
+  font-weight: normal; 
+  font-style: normal;
+}
+
+/* === VARIABLES === */
+/* Centralizes the color palette for easy theming and consistency. 
+   Uses a mix of dark cyan, deep blue, and a bright red. */
+:root {
+  --color-bg-dark: #fafafa;
+  --color-bg-light: #4BADB5;
+  --color-card-dark: #eeeeee;
+  --color-purple: #142A3F;
+  --color-purple-hover: #b094cd;
+  --color-yellow: #C31109;
+  --color-yellow-hover: #4BADB5;
+  --color-danger: #ef4444;
+}
+
+/* === BASE STYLES === */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  /* Applies a global vertical gradient background to establish the thematic tone */
+  background: linear-gradient(
+    180deg, 
+    var(--color-bg-dark) 12%, 
+    var(--color-bg-light) 70%, 
+    var(--color-purple) 100%
+  );
+  color: white;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Large decorative background element bite mark (currently commented out but structure remains) */
+body::after {
+  content: '';
+  position: absolute; 
+  top: -50px;   
+  right: -20px;    
+  width: 1760px;    
+  height: 800px;   
+  /*background-image: url('./bite.png'); */
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: bottom right;
+  opacity: 1;
+  pointer-events: none; 
+  z-index: -100; 
+}
+
+/* Custom Scrollbar Styling */
+::-webkit-scrollbar { 
+    width: 8px; 
+    height: 8px; 
+}
+::-webkit-scrollbar-track { 
+    background: rgba(0, 0, 0, 0.2); 
+}
+::-webkit-scrollbar-thumb { 
+    background: var(--color-purple); 
+    border-radius: 4px; 
+}
+::-webkit-scrollbar-thumb:hover { 
+    background: var(--color-bg-light); 
+}
+
+/* === TYPOGRAPHY === */
+.main-title {
+  font-size: 9rem;
+  margin: 1rem 0;
+  text-align: center;
+  font-weight: normal;
+}
+
+.subtitle {
+  text-align: center;
+  font-size: 2rem;
+  color: var(--color-yellow);
+  margin-bottom: 3rem; /* Provides breathing room above the cards */
+  font-weight: 600;
+}
+
+/* Applies the custom thematic font to specific headers */
+.neon-text {
+  font-family: 'title', sans-serif;
+  color: var(--color-yellow);
+  letter-spacing: normal; 
+}
+
+/* === NAVIGATION === */
+/* Floating, blurred glassmorphism navigation bar fixed to the top left */
+.main-nav {
+  position: absolute;
+  top: 1.5rem; 
+  left: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+}
+
+.nav-icon {
+  color: var(--color-purple);
+  transition: transform 0.2s, color 0.2s;
+}
+
+.nav-icon:hover {
+  color: var(--color-bg-light);
+  transform: scale(1.1);
+}
+
+.nav-icon.active {
+  color: var(--color-yellow);
+}
+
+/* === LAYOUTS === */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8rem 2rem 3rem 2rem;
+  min-height: 100vh;
+}
+
+/* Responsive grid system for main menu cards */
+.grid-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  width: 100%;
+  max-width: 1200px;
+}
+@media (min-width: 768px) { 
+    .grid-container { grid-template-columns: repeat(2, 1fr); } 
+}
+@media (min-width: 1024px) { 
+    .grid-container { grid-template-columns: repeat(3, 1fr); } 
+}
+
+.grid-container-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  width: 100%;
+  max-width: 900px;
+  margin-top: 50px;
+}
+@media (min-width: 768px) { 
+    .grid-container-2 { grid-template-columns: repeat(2, 1fr); } 
+}
+
+/* === CARDS === */
+/* Glassmorphism styling for standard content containers */
+.card {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 1.5rem;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 1.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.3);
+  position: relative;
+}
+
+.card-tall {
+  height: 400px;
+}
+
+.card-small {
+  height: 300px;
+  padding: 0px;
+}
+
+/* Interactive link cards (e.g., in the main menu) */
+.card-link {
+  text-decoration: none;
+  transition: all 0.3s;
+}
+
+.card-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transform: translateY(-5px);
+}
+
+.card-icon-wrapper {
+  border-color: #A084BD;
+  border-radius: 50%;
+  transition: transform 0.3s;
+}
+
+.card-link:hover .card-icon-wrapper { 
+    transform: scale(1.1); 
+}
+
+/* Bottom badge for menu cards */
+.card-badge {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  background: color-mix(in srgb, var(--color-purple) 85%, transparent);
+  color: #54aeb8;
+  padding: 1rem 0rem;
+  border-radius: 0 0 1.5rem 1.5rem;
+  width: 100%;
+  text-align: center;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+/* === THEMATIC MULTIPLE STRAIGHT BUBBLES ANIMATION === */
+/* Complex pseudo-element setup to create an underwater bubble effect 
+   when hovering over specific cards. */
+
+/* Base styling for 6 hidden bubbles */
+.card-link::before,
+.card-link::after,
+.card-link .card-icon-wrapper::before,
+.card-link .card-icon-wrapper::after,
+.card-link .card-badge::before,
+.card-link .card-badge::after {
+  content: '';
+  position: absolute;
+  top: 10px; /* Starting point just below the top edge of the card */
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.2);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Distribute positions and sizes of the 6 bubbles across the width */
+.card-link::before { width: 12px; height: 12px; left: 15%; }
+.card-link::after { width: 24px; height: 24px; left: 35%; }
+.card-link .card-icon-wrapper::before { width: 16px; height: 16px; left: 50%; }
+.card-link .card-icon-wrapper::after { width: 8px; height: 8px; left: 65%; }
+.card-link .card-badge::before { width: 20px; height: 20px; left: 80%; }
+.card-link .card-badge::after { width: 14px; height: 14px; left: 90%; }
+
+/* Hover state: Trigger the animation with varying speeds and delays 
+   so they don't all rise simultaneously. */
+.card-link:hover::before { animation: straightUp 2s infinite linear 0.1s; }
+.card-link:hover::after { animation: straightUp 3.5s infinite linear 0.4s; }
+.card-link:hover .card-icon-wrapper::before { animation: straightUp 2.8s infinite linear 0s; }
+.card-link:hover .card-icon-wrapper::after { animation: straightUp 1.8s infinite linear 0.6s; }
+.card-link:hover .card-badge::before { animation: straightUp 4.2s infinite linear 0.3s; }
+.card-link:hover .card-badge::after { animation: straightUp 2.4s infinite linear 0.8s; }
+
+/* The upward movement keyframes */
+@keyframes straightUp {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.8; /* Appears quickly */
+  }
+  90% {
+    opacity: 0.8; /* Remains visible while rising */
+  }
+  100% {
+    transform: translateY(-300px); /* Moves straight up 300px */
+    opacity: 0; /* Fades out at the end */
+  }
+}
+
+/* === UPLOAD AREA === */
+/* Styling for the drag-and-drop / file selection zones (used in character creation) */
+.upload-area {
+  flex: 1;
+  width: 100%;
+  border: 1.5px solid var(--color-purple);
+  border-radius: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s;
+  position: relative;
+  overflow: hidden;
+  color: var(--color-purple);
+  font-weight: 600;
+}
+
+.upload-area:hover { 
+    background: rgba(255, 255, 255, 0.05); 
+}
+
+.upload-area svg { 
+    margin-bottom: 1rem; 
+}
+
+.image-preview {
+  position: absolute;
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.upload-ui {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.overlay {
+  position: absolute;
+  top: 0; 
+  left: 0; 
+  width: 100%; 
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  z-index: 10;
+  color: white;
+}
+
+.upload-area:hover .overlay { 
+    opacity: 1; 
+}
+
+/* === CHARACTER CARDS (RESULTS) === */
+.char-card-result {
+  background: var(--color-purple);
+  border-radius: 1.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  height: 400px;
+  position: relative;
+}
+
+.char-image-container {
+  flex: 1;
+  background: var(--color-bg-dark);
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 4px solid var(--color-yellow);
+  margin-bottom: 1rem;
+}
+
+.char-image-container img { 
+    width: 100%; 
+    height: 100%; 
+    object-fit: cover; 
+}
+
+.char-name {
+  background: var(--color-card-dark);
+  color: var(--color-yellow);
+  font-weight: bold;
+  font-size: 1.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+/* === FORMS & BUTTONS === */
+.input-group {
+  width: 100%;
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.input-field {
+  flex: 1;
+  background: color-mix(in srgb, var(--color-purple) 85%, transparent);
+  color: var(--color-card-dark);
+  font-weight: bold;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  outline: none;
+}
+
+.input-field::placeholder { 
+    color: #6592bd; 
+}
+
+.input-field:focus { 
+    box-shadow: 0 0 0 2px var(--color-yellow); 
+}
+
+.btn-primary {
+  background: var(--color-yellow);
+  color: var(--color-bg-dark);
+  font-weight: bold;
+  padding: 0.75rem;
+  border-radius: 15px;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover:not(:disabled) { 
+    background: var(--color-yellow-hover); 
+}
+
+.btn-primary:disabled { 
+    opacity: 0.5; 
+    cursor: not-allowed; 
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: white;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.btn-danger:hover { 
+    background: #dc2626; 
+}
+
+/* Delete Button Overlay on Result Cards */
+.delete-wrapper {
+  position: absolute;
+  top: 1.5rem; 
+  right: 1.5rem;
+  z-index: 20;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.char-card-result:hover .delete-wrapper { 
+    opacity: 1; 
+}
+
+/* === STORYBOARD SPECIFICS === */
+.art-styles-wrapper { 
+    display: flex; 
+    flex-wrap: wrap; 
+    justify-content: center; 
+    gap: 0.75rem; 
+    margin-bottom: 3rem; 
+}
+
+.btn-style {
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  font-weight: bold;
+  border: 2px solid var(--color-purple);
+  background: var(--color-bg-dark);
+  color: var(--color-purple);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-style:hover { 
+    border-color: white; 
+    color: white; 
+}
+
+.btn-style.active {
+  background: var(--color-yellow);
+  color: var(--color-bg-dark);
+  border-color: var(--color-yellow);
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(255, 250, 139, 0.5);
+}
+
+/* Scene block container - restricts max width for ultrawide monitors */
+.scene-block { 
+    width: 100%; 
+    max-width: 1700px; 
+}
+
+.scene-title { 
+    color: var(--color-yellow); 
+    font-size: 1.8rem; 
+    margin-bottom: 1rem; 
+    margin-top: 1rem;
+}
+
+/* Horizontal scrolling container for frames within a scene */
+.scene-container {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 30px;
+  padding: 2rem;
+  overflow-x: auto;
+  box-shadow: 0 20px 25px -5px rgba(0,0,0,0.2);
+}
+
+/* Wrapper forces horizontal layout for frames */
+.frames-wrapper { 
+    display: flex; 
+    gap: 2rem; 
+    width: max-content; 
+    padding-bottom: 1rem; 
+    align-items: flex-start; /* Forces frames to align top and not stretch vertically */
+}
+
+/* Individual Frame UI */
+.frame-card {
+  width: 500px;
+  background: var(--color-card-dark);
+  border-radius: 1rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+}
+
+.frame-header { 
+    display: flex; 
+    justify-content: space-between; 
+    color: var(--color-purple); 
+    font-weight: bold; 
+    font-size: 0.9rem; 
+}
+
+.frame-upload {
+  width: 100%; 
+  aspect-ratio: 1344 / 768;
+  background: var(--color-card-dark);
+  border: 2px solid var(--color-purple);
+  border-radius: 0.75rem;
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  cursor: pointer; 
+  position: relative; 
+  overflow: hidden;
+  color: var(--color-purple);
+}
+
+.frame-upload:hover { 
+    border-color: var(--color-yellow); 
+}
+
+.textarea-field {
+  width: 100%;
+  background: var(--color-card-dark);
+  color: rgba(20, 22, 29, 0.973);
+  border: 1px solid rgba(160, 132, 189, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  resize: none;
+  outline: none;
+  min-height: 80px;
+}
+
+.textarea-field:focus { 
+    border-color: var(--color-yellow); 
+}
+
+.select-group { 
+    display: flex; 
+    align-items: center; 
+    gap: 0.5rem; 
+}
+
+.select-label { 
+    color: var(--color-purple); 
+    font-size: 0.75rem; 
+    font-weight: bold; 
+    text-transform: uppercase; 
+}
+
+.select-field {
+  flex: 1;
+  background: var(--color-card-dark);
+  color: white;
+  border: 1px solid rgba(160, 132, 189, 0.3);
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  outline: none;
+}
+
+/* Big "Add Frame" placeholder button inside the scene */
+.btn-add-frame {
+  width: 300px; 
+  height: 410px;
+  background: color-mix(in srgb, var(--color-purple) 85%, transparent);
+  border-radius: 1rem;
+  display: flex; 
+  flex-direction: column; 
+  align-items: center; 
+  justify-content: center;
+  gap: 1rem; 
+  color: #85C6CC; 
+  font-weight: bold; 
+  font-size: 1.2rem;
+  cursor: pointer; 
+  transition: all 0.2s;
+}
+
+.btn-add-frame:hover .plus {
+    stroke: var(--color-yellow);
+}
+
+.btn-add-frame .icon-bg { 
+    padding: 1.5rem; 
+    border-radius: 50%; 
+    transition: transform 0.2s; 
+}
+
+.btn-add-frame:hover .icon-bg { 
+    transform: scale(1.1); 
+}
+
+.btn-add-frame:hover span { 
+    color: var(--color-yellow); 
+}
+
+/* Huge global "Add Scene" / "Task Done" button at the bottom */
+.btn-add-scene {
+  width: 100%; 
+  max-width: 1200px;
+  background: var(--color-purple);
+  color: var(--color-card-dark);
+  font-size: 1.5rem; 
+  font-weight: bold;
+  padding: 1.5rem;
+  border-radius: 2rem;
+  border: none;
+  display: flex; 
+  align-items: center; 
+  justify-content: center; 
+  gap: 1rem;
+  cursor: pointer; 
+  transition: background 0.2s;
+  margin-top: 2rem;
+}
+
+.btn-add-scene:hover { 
+    background: var(--color-yellow); 
+}
+
+/* === UTILITIES === */
+.hidden { 
+    display: none !important; 
+}
+
+/* === CUSTOM POPUP MODAL === */
+/* Styling for the custom JS-injected overlays (e.g., supervisor checkpoint) */
+.custom-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.custom-modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.custom-modal {
+  background: var(--color-purple);
+  border: 2px solid var(--color-yellow);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  width: 90%;
+  max-width: 400px;
+  text-align: center;
+  transform: translateY(20px);
+  transition: transform 0.3s ease;
+  box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+}
+
+.custom-modal-overlay.active .custom-modal {
+  transform: translateY(0);
+}
+
+.custom-modal p {
+  color: rgb(255, 255, 255);
+  font-size: 1.2rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 1rem;
+}
+
+.btn-cancel {
+  flex: 1;
+  background: var(--color-card-dark);
+  color: var(--color-purple);
+  font-weight: bold;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-cancel:hover {
+  background: #ccc;
+}
+
+/* === THEMATIC SHARK ANIMATION (still work in progress) === */
+/* Prevents the shark from creating a horizontal scrollbar when it swims off-screen */
+body {
+    overflow-x: hidden;
+}
+
+/* Container fixed to the bottom of the viewport, below the content layer */
+.shark-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100vw;
+    height: 300px; /* Defines the "swimming zone" height */
+    overflow: hidden;
+    pointer-events: none; /* Allows clicks to pass through the shark to underlying UI */
+    z-index: 0;
+}
+
+/* General Shark Base Styles */
+.shark {
+    position: absolute;
+    bottom: 50px;
+    opacity: 0.7; /* Slightly transparent to blend with the background */
+    transition: opacity 0.3s ease;
+}
+
+/* Inner SVG styling for the silhouette */
+.shark svg path {
+    fill: #2a3b4c; /* Dark blue/grey silhouette */
+    /* Adds a subtle "deep sea" neon glow effect */
+    filter: drop-shadow(0 0 5px rgba(100, 255, 218, 0.4));
+}
+
+/* --- Keyframe Animations --- */
+
+/* Specific styling and timing for the primary shark */
+.shark-1 {
+    width: 250px;
+    height: auto;
+    left: -300px; /* Starts completely off-screen to the left */
+    /* Animation: Name, Duration, Timing Function, Iteration Count */
+    animation: swimAcross 25s linear infinite;
+    animation-delay: 2s; /* Waits 2 seconds after page load before starting */
+}
+
+/* Specific styling and timing for an optional secondary, smaller shark */
+.shark-2 {
+    width: 180px;
+    bottom: 150px; /* Swims slightly higher up */
+    left: -200px;
+    animation: swimAcross 35s linear infinite;
+    animation-delay: 15s;
+    opacity: 0.5; /* More discreet */
+}
+
+/* Defines the lateral movement and subtle vertical wobble */
+@keyframes swimAcross {
+    0% {
+        transform: translateX(0vw) translateY(0px) rotate(0deg);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.7; /* Fades in once on screen */
+    }
+    /* The wobble effect simulates swimming motion */
+    25% {
+        transform: translateX(25vw) translateY(-15px) rotate(2deg);
+    }
+    50% {
+        transform: translateX(50vw) translateY(10px) rotate(-2deg);
+    }
+    75% {
+        transform: translateX(75vw) translateY(-10px) rotate(2deg);
+    }
+    90% {
+        opacity: 0.7;
+    }
+    100% {
+        transform: translateX(110vw) translateY(0px) rotate(0deg);
+        opacity: 0; /* Fades out before restarting */
+    }
+}

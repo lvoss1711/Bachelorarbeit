@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- --- Document Setup & Styles --- -->
+  <meta charset="UTF-8" />
+  <title>Spielboard - Final Questionnaire</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+
+<body style="display: flex; flex-direction: column; align-items: center; height: 100vh; background: var(--color-bg-dark); margin: 0; padding: 2rem;">
+
+    <!-- --- Embedded Google Form Container --- -->
+    <!-- Renders the final user study evaluation questionnaire directly within the application layout. -->
+    <div class="card" style="width: 100%; max-width: 1050px; flex-grow: 1; padding: 0.5rem; overflow: hidden; background: white; border-radius: 1.5rem; display: flex;">
+        
+        <iframe id="final-gform" src="https://docs.google.com/forms/d/e/1FAIpQLSfSY4SeIDdQ0NYqWvzweRStgmXz9fTTsr1jltZj4bmuZJ_E7A/viewform?embedded=true" width="100%" height="100%" frameborder="0" marginheight="0" marginwidth="0" style="border: none; border-radius: 1rem;">Loading…</iframe>
+     </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const gform = document.getElementById('final-gform');
+            let loadCount = 0;
+
+            // --- Form Submission Redirect Heuristic ---
+            // Tracks iframe load events to detect when the participant has successfully submitted the final questionnaire.
+            // Once the threshold is passed (indicating submission and redirection to the Google confirmation screen), 
+            // the participant is automatically forwarded to the closing thank-you page.
+            gform.addEventListener('load', () => {
+                loadCount++;
+                if (loadCount > 3) {
+                    window.location.href = 'thanks.html';
+                }
+            });
+        });
+    </script>
+</body>
+</html>

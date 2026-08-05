@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- --- Document Setup & Styles --- -->
+  <!-- Initializes the page with standard metadata and links to the global stylesheet[cite: 17]. -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spielboard - KI Warmup</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <!-- --- Admin Navigation --- -->
+  <!-- Simple back button to return to the main admin dashboard without triggering the warmup process. -->
+  <nav class="main-nav">
+    <a href="admin.html" class="nav-icon" title="Zurück zum Dashboard">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+    </a>
+  </nav>
+
+  <!-- --- Main UI Container --- -->
+  <!-- Centers the content vertically and horizontally. Explains the purpose of the warmup process to the admin. -->
+  <div class="page-container" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 70vh;">
+    <h1 class="main-title neon-text" style="font-size: 4rem; text-align: center;">System Warmup</h1>
+    
+    <!-- Instructional Text -->
+    <!-- Explains that this process preemptively loads heavy AI models (Dreamshaper, ControlNet, IP-Adapter) 
+         into the GPU's VRAM to eliminate the initial loading delay for the first study participant. -->
+    <p style="font-size: 1.2rem; text-align: center; max-width: 600px; margin-bottom: 2rem;">
+      This process loads all AI models (Dreamshaper, ControlNet, IP-Adapter, Preprocessors) in the VRAM of the graphic card. 
+      This ensures the participants first generation doesnt have a long waiting period.
+    </p>
+
+    <!-- Warmup Action Button -->
+    <button id="warmup-btn" class="btn-primary" style="font-size: 1.5rem; padding: 1.5rem 3rem; background: var(--color-danger); color: white; border-radius: 1rem; cursor: pointer; border: 2px solid rgba(255,255,255,0.2);">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.75rem;"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+      Start Warmup
+    </button>
+
+    <!-- Status Output Display -->
+    <div id="status-log" style="margin-top: 2rem; color: var(--color-yellow); font-family: monospace; font-size: 1.1rem; text-align: center; min-height: 50px;">
+      Ready
+    </div>
+  </div>
+
+  <script>
+    // --- Logic & Backend Communication ---
+    // Executes when the DOM is fully loaded. Defines the workflow payload and handles communication with the local ComfyUI server.
+    document.addEventListener('DOMContentLoaded', () => {
+        const warmupBtn = document.getElementById('warmup-btn');
+        const statusLog = document.getElementById('status-log');
+        const COMFY_URL = "http://127.0.0.1:8188"; // Address of the local ComfyUI backend
+
+        // --- Dummy Image Generation ---
+        // ComfyUI requires a base image to process ControlNet and IP-Adapter nodes.
+        // This function draws a simple 1024x576 gray rectangle on a hidden canvas, 
+        // converts it to a JPEG Blob, and uploads it to ComfyUI's input directory.
+        async function uploadDummyImage() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 576;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#808080';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+            const response = await fetch(dataUrl);
+            const blob = await response.blob();
+            
+            const formData = new FormData();
+            formData.append('image', blob, 'warmup_dummy.jpg');
+            
+            const res = await fetch(`${COMFY_URL}/upload/image`, { method: 'POST', body: formData });
+            const data = await res.json();
+            return data.name; // Returns the filename assigned by ComfyUI
+        }
+
+        // --- Warmup Execution Handler ---
+        warmupBtn.addEventListener('click', async () => {
+            // Disable the button to prevent multiple simultaneous requests
+            warmupBtn.disabled = true;
+            warmupBtn.style.opacity = '0.5';
+            
+            try {
+                // Step 1: Generate and upload the dummy reference image
+                statusLog.innerText = "1/3: Upload Dummy-image...";
+                const dummyImageName = await uploadDummyImage();
+
+                statusLog.innerText = "2/3: Send warmup to ComfyUI...";
+
+                // --- ComfyUI Workflow Payload ---
+                // This JSON object represents the exact nodal architecture used in the actual application.
+                // Sending this forces the ComfyUI server to load the heavy .safetensors files 
+                // (e.g., dreamshaperXL, OpenPoseXL2, depth_anything_v2) from the hard drive into the GPU VRAM.
+                // We use '1' step (steps: 1) to make the execution as fast as possible since we don't care about the final image quality here.
+                const workflow = {
+                  "3": { "inputs": { "seed": Math.floor(Math.random() * 100000), "steps": 1, "cfg": 2.0, "sampler_name": "euler", "scheduler": "sgm_uniform", "denoise": 1, "model": [ "329", 0 ], "positive": [ "331", 0 ], "negative": [ "331", 1 ], "latent_image": [ "5", 0 ] }, "class_type": "KSampler" },
+                  "4": { "inputs": { "ckpt_name": "dreamshaperXL_lightningDPMSDE.safetensors" }, "class_type": "CheckpointLoaderSimple" },
+                  "5": { "inputs": { "width": 1024, "height": 576, "batch_size": 1 }, "class_type": "EmptyLatentImage" },
+                  "6": { "inputs": { "text": "dummy warmup text", "clip": [ "4", 1 ] }, "class_type": "CLIPTextEncode" }, 
+                  "7": { "inputs": { "text": "bad quality", "clip": [ "4", 1 ] }, "class_type": "CLIPTextEncode" },
+                  "8": { "inputs": { "samples": [ "3", 0 ], "vae": [ "4", 2 ] }, "class_type": "VAEDecode" },
+                  "10": { "inputs": { "strength": 0.88, "start_percent": 0, "end_percent": 0.973, "positive": [ "6", 0 ], "negative": [ "7", 0 ], "control_net": [ "12", 0 ], "image": [ "324", 0 ] }, "class_type": "ControlNetApplyAdvanced" },
+                  "12": { "inputs": { "control_net_name": "OpenPoseXL2.safetensors" }, "class_type": "ControlNetLoader" },
+                  "29": { "inputs": { "interpolation": "LANCZOS", "crop_position": "center", "sharpening": 0.1, "image": [ "32", 0 ] }, "class_type": "PrepImageForClipVision" },
+                  "30": { "inputs": { "preset": "PLUS FACE (portraits)", "model": [ "4", 0 ] }, "class_type": "IPAdapterUnifiedLoader" },
+                  "31": { "inputs": { "weight": 0.75, "start_at": 0, "end_at": 0.679, "weight_type": "style transfer", "model": [ "30", 0 ], "ipadapter": [ "30", 1 ], "image": [ "29", 0 ] }, "class_type": "IPAdapter" },
+                  // Note: It assumes 'dave_portrait.png' and 'dave_fullbody.png' already exist in the ComfyUI input folder
+                  "32": { "inputs": { "image": "dave_portrait.png" }, "class_type": "LoadImage" },
+                  "67": { "inputs": { "image": dummyImageName }, "class_type": "LoadImage" },
+                  "145": { "inputs": { "images": [ "8", 0 ] }, "class_type": "PreviewImage" },
+                  "311": { "inputs": { "ckpt_name": "depth_anything_v2_vitl.pth", "resolution": 512, "image": [ "313", 0 ] }, "class_type": "DepthAnythingV2Preprocessor" },
+                  "312": { "inputs": { "images": [ "324", 0 ] }, "class_type": "PreviewImage" },
+                  "313": { "inputs": { "target_width": 1024, "target_height": 576, "padding_color": "white", "interpolation": "area", "image": [ "67", 0 ] }, "class_type": "ResizeAndPadImage" },
+                  "320": { "inputs": { "filename_prefix": "Warmup", "images": [ "8", 0 ] }, "class_type": "SaveImage" },
+                  "324": { "inputs": { "detect_hand": "enable", "detect_body": "enable", "detect_face": "enable", "resolution": 512, "bbox_detector": "yolox_l.onnx", "pose_estimator": "dw-ll_ucoco_384_bs5.torchscript.pt", "scale_stick_for_xinsr_cn": "disable", "image": [ "313", 0 ] }, "class_type": "DWPreprocessor" },
+                  "325": { "inputs": { "image": "dave_fullbody.png" }, "class_type": "LoadImage" },
+                  "327": { "inputs": { "interpolation": "LANCZOS", "crop_position": "center", "sharpening": 0.1, "image": [ "325", 0 ] }, "class_type": "PrepImageForClipVision" },
+                  "328": { "inputs": { "preset": "PLUS (high strength)", "model": [ "31", 0 ] }, "class_type": "IPAdapterUnifiedLoader" },
+                  "329": { "inputs": { "weight": 0.65, "start_at": 0, "end_at": 0.434, "weight_type": "style transfer", "model": [ "328", 0 ], "ipadapter": [ "328", 1 ], "image": [ "327", 0 ] }, "class_type": "IPAdapter" },
+                  "331": { "inputs": { "strength": 0.52, "start_percent": 0, "end_percent": 0.878, "positive": [ "10", 0 ], "negative": [ "10", 1 ], "control_net": [ "333", 0 ], "image": [ "311", 0 ] }, "class_type": "ControlNetApplyAdvanced" },
+                  "332": { "inputs": { "images": [ "311", 0 ] }, "class_type": "PreviewImage" },
+                  "333": { "inputs": { "control_net_name": "sai_xl_depth_256lora.safetensors" }, "class_type": "ControlNetLoader" }
+                };
+
+                // Step 2: Send the workflow to the ComfyUI API
+                const res = await fetch(`${COMFY_URL}/prompt`, { 
+                    method: 'POST', 
+                    headers: { 'Content-Type': 'application/json' }, 
+                    body: JSON.stringify({ prompt: workflow }) 
+                });
+                
+                const responseData = await res.json();
+
+                // Step 3: Handle the API response
+                if (responseData.prompt_id) {
+                    statusLog.innerHTML = "3/3: <span style='color: #4BADB5;'>Erfolgreich!</span> Alle Modelle werden gerade im Hintergrund geladen. Das System ist nun bereit für den ersten Probanden.";
+                    warmupBtn.innerHTML = "Warmup abgeschlossen";
+                    warmupBtn.style.background = "#4BADB5";
+                    warmupBtn.style.opacity = '1';
+                } else {
+                    statusLog.innerHTML = "<span style='color: var(--color-danger);'>Fehler: Konnte den Prompt nicht senden. Läuft ComfyUI?</span>";
+                    warmupBtn.disabled = false;
+                    warmupBtn.style.opacity = '1';
+                }
+
+            } catch (err) {
+                // Catch network errors (e.g., ComfyUI is not running or CORS is blocking the request)
+                console.error(err);
+                statusLog.innerHTML = "<span style='color: var(--color-danger);'>Verbindungsfehler. Stelle sicher, dass ComfyUI (inkl. enable-cors-header) gestartet ist!</span>";
+                warmupBtn.disabled = false;
+                warmupBtn.style.opacity = '1';
+            }
+        });
+    });
+  </script>
+</body>
+</html>

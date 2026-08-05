@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- --- Document Setup & Custom Styles --- -->
+  <!-- Initializes the page and defines a specific 'readonly-frame' CSS class to display the storyboard cards without editing controls. -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spielboard - Session Auswertung</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .readonly-frame {
+      width: 400px;
+      background: var(--color-card-dark);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+    }
+  </style>
+</head>
+<body style="background: #142A3F;">
+
+  <!-- --- Admin Navigation --- -->
+  <!-- Provides a back button to safely return to the main admin dashboard. -->
+  <nav class="main-nav">
+    <a href="admin.html" class="nav-icon" title="Zurück zum Dashboard" style="color: white; text-decoration: none;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      <span style="margin-left: 0.5rem; font-weight: bold; font-size: 1.2rem;">Zurück</span>
+    </a>
+  </nav>
+
+  <!-- --- Evaluation Container --- -->
+  <!-- The main wrapper where the dynamically generated evaluation data will be injected. -->
+  <div class="page-container" style="max-width: 1400px; padding-top: 6rem; margin: 0 auto;">
+    <h1 class="neon-text" style="font-size: 3rem; margin-bottom: 2rem;" id="session-title">Auswertung...</h1>
+
+    <h2 style="color: var(--color-yellow); margin-bottom: 1rem; width: 100%;">Erstelltes Storyboard</h2>
+    <div id="scenes-view" style="width: 100%;">
+      <p>Lade Storyboard...</p>
+    </div>
+  </div>
+
+ <script>
+    // --- Data Fetching & Initialization ---
+    // Extracts the target session ID from the URL parameters upon page load and fetches the corresponding session data from the API.
+    document.addEventListener('DOMContentLoaded', async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const sessionId = urlParams.get('session_id');
+
+      if (!sessionId) {
+        document.getElementById('session-title').innerText = "Keine Session ausgewählt";
+        return;
+      }
+
+      try {
+        const response = await fetch(`api.php?action=get_session_data&session_id=${sessionId}`);
+        const data = await response.json();
+
+        // --- UI Header Update ---
+        // Updates the main headline to display the specific Proband ID (participant ID) being evaluated.
+        if (data.success && data.proband_id) {
+            document.getElementById('session-title').innerText = `Auswertung: ${data.proband_id}`;
+        } else {
+            document.getElementById('session-title').innerText = `Auswertung`;
+        }
+
+        const scenesView = document.getElementById('scenes-view');
+        if (data.success && data.frames && data.frames.length > 0) {
+          scenesView.innerHTML = ""; 
+          
+          // --- Data Grouping ---
+          // Groups the flat array of frames by their Scene ID (the number before the decimal in scene_frame_id).
+          const scenes = {};
+          data.frames.forEach(frame => {
+            const sceneId = frame.scene_frame_id.split('.')[0];
+            if (!scenes[sceneId]) scenes[sceneId] = [];
+            scenes[sceneId].push(frame);
+          });
+
+          // --- Scene & Frame Sorting ---
+          // Sorts the scenes numerically, then iterates through them to build the HTML blocks. 
+          // Inside each scene, the frames are also sorted numerically based on their sub-index.
+          Object.keys(scenes).sort((a, b) => a - b).forEach(sceneId => {
+            const sceneBlock = document.createElement('div');
+            sceneBlock.className = "scene-block";
+            
+            let framesHtml = "";
+            
+            scenes[sceneId].sort((a, b) => {
+              const frameA = parseInt(a.scene_frame_id.split('.')[1]);
+              const frameB = parseInt(b.scene_frame_id.split('.')[1]);
+              return frameA - frameB;
+            }).forEach(frame => {
+              
+              // --- Image Rendering Logic ---
+              // Determines the primary image to show. It falls back to the pose image if no result exists, or a gray placeholder if neither is available.
+              const mainImg = frame.result_base64 && frame.result_base64.length > 10 ? frame.result_base64 : (frame.pose_base64 && frame.pose_base64.length > 10 ? frame.pose_base64 : '');
+                              
+              const poseImg = frame.pose_base64 && frame.pose_base64.length > 10 ? `<div style="height: auto; aspect-ratio: 1344 / 768; border: 2px solid var(--color-yellow); border-radius: 0.5rem; overflow: hidden; margin-top: 0.5rem;"><img src="${frame.pose_base64}" style="width: 100%; height: 100%; object-fit: cover;"></div>` : '';
+
+              const imgHtml = mainImg ? `<img src="${mainImg}" style="width: 100%; aspect-ratio: 1344/768; object-fit: cover; border-radius: 0.75rem; border: 2px solid var(--color-purple);">` : `<div style="width: 100%; aspect-ratio: 1344/768; background: #666; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; color: white;">Kein Bild vorhanden</div>`;
+
+              // --- Generation History Parser ---
+              // Parses the JSON string of previous generations. 
+              // It explicitly styles frames that were soft-deleted with a dashed red border and a "Gelöscht" (Deleted) badge, providing full transparency to the admin.
+              let historyHtml = "";
+              if (frame.history_base64 && frame.history_base64.length > 5) {
+                  try {
+                      const histArr = JSON.parse(frame.history_base64);
+                      if (histArr.length > 0) {
+                          const historyImagesHtml = histArr.map(item => {
+                              // Handles backwards compatibility between legacy string formats and the newer object format containing 'is_deleted'
+                              const src = typeof item === 'string' ? item : item.src;
+                              const isDeleted = typeof item === 'string' ? false : item.is_deleted;
+                              
+                              const borderStyle = isDeleted ? "border: 2px dashed var(--color-danger); opacity: 0.5;" : "border: 2px solid var(--color-yellow);";
+                              const deletedBadge = isDeleted ? `<div style="position: absolute; top: 0; right: 0; background: var(--color-danger); color: white; font-size: 14px; font-weight: bold; padding: 4px 10px; border-bottom-left-radius: 8px; z-index: 10;">Gelöscht</div>` : "";
+
+                              return `<div style="position: relative; width: 100%;">
+                                  <img src="${src}" style="width: 100%; aspect-ratio: 1344/768; object-fit: cover; border-radius: 0.75rem; ${borderStyle} box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                                  ${deletedBadge}
+                              </div>`;
+                          }).join('');
+
+                          historyHtml = `<div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px dashed rgba(20, 42, 63, 0.3);">
+                              <strong style="color: var(--color-purple); font-size: 0.9rem; text-transform: uppercase; display: block; margin-bottom: 1rem;">Generierungs-Historie (${histArr.length}):</strong>
+                              <div style="display: flex; flex-direction: column; gap: 1rem;">${historyImagesHtml}</div>
+                          </div>`;
+                      }
+                  } catch(e) { console.error("Fehler beim Parsen der History:", e); }
+              }
+
+              // --- Frame State Formatting ---
+              // Checks if the primary frame itself was soft-deleted during the session and applies warning styles accordingly.
+              const isDeleted = frame.is_deleted == 1 || frame.is_deleted === "1";
+              const deletedStyle = isDeleted ? "border: 2px dashed var(--color-danger); opacity: 0.6;" : "";
+              const deletedBadge = isDeleted ? `<span style="background: var(--color-danger); color: white; padding: 0.2rem 0.6rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: bold; margin-left: 0.5rem;">Gelöscht</span>` : "";
+
+              // --- Frame HTML Assembly ---
+              // Constructs the final read-only card containing the character tag, main image, text prompt, pose reference, and iteration history.
+              framesHtml += `
+                <div class="readonly-frame" style="${deletedStyle}">
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <span style="font-weight: bold; color: var(--color-purple);">Frame ${frame.scene_frame_id}</span>
+                        ${deletedBadge}
+                    </div>
+                    <span style="background: var(--color-yellow); color: var(--color-bg-dark); padding: 0.2rem 0.6rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: bold;">
+                      ${frame.character_name ? frame.character_name : 'Kein Charakter'}
+                    </span>
+                  </div>
+                  ${imgHtml}
+                  <div style="background: rgba(20, 42, 63, 0.1); padding: 0.75rem; border-radius: 0.5rem; color: var(--color-purple); font-size: 0.9rem;">
+                    <strong style="color: var(--color-yellow);">Prompt:</strong><br>
+                    ${frame.prompt_text ? frame.prompt_text : '<i>Kein Text eingegeben</i>'}
+                  </div>
+                  ${poseImg}
+                  ${historyHtml}
+                </div>
+              `;
+            });
+
+            // --- Scene HTML Assembly ---
+            // Wraps all the assembled frames into their respective scene container and injects it into the DOM.
+            sceneBlock.innerHTML = `
+              <h2 class="scene-title">Scene ${sceneId}</h2>
+              <div class="scene-container">
+                  <div class="frames-wrapper">
+                    ${framesHtml}
+                  </div>
+              </div>
+            `;
+            scenesView.appendChild(sceneBlock);
+          });
+
+        } else {
+          scenesView.innerHTML = "<p>Es wurden keine Storyboard-Frames für diese Session gefunden.</p>";
+        }
+
+      } catch (e) {
+        console.error("Fehler beim Laden der Session-Daten:", e);
+        document.getElementById('scenes-view').innerHTML = "<p>Fehler beim Abrufen der Daten.</p>";
+      }
+    });
+  </script>
+</body>
+<!-- http://localhost/Bachelorarbeit/admin_session.html -->
+</html>

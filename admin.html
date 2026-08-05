@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- --- Document Setup & Styles --- -->
+  <!-- Initializes the main admin dashboard and links to the global stylesheet. -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spielboard - Admin Dashboard</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+
+<body>
+
+<!-- --- Admin Navigation --- -->
+<!-- Provides access to the system's core administration tools, including character management and the AI warmup routine. -->
+<nav class="main-nav">
+  <a href="start.html" class="nav-icon" title="Zurück zum Start">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+    </svg>
+  </a>
+  <div style="display: flex; gap: 1rem; margin-left: 1.5rem;">
+    <a href="admin_characters.html" class="btn-primary" style="text-decoration: none;">Charaktere verwalten</a>
+    <a href="admin_warmup.html" class="btn-primary" style="text-decoration: none; background: var(--color-danger); color: white;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 0.5rem;"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+      KI Warmup
+    </a>
+  </div>
+</nav>
+
+  <!-- --- Main UI Container --- -->
+  <!-- Holds the header and the grid where the participant session cards will be dynamically injected. -->
+  <div class="page-container">
+    <h1 class="main-title neon-text" style="font-size: 5rem;">Admin Dashboard</h1>
+    <p style="margin-bottom: 3rem; font-size: 1.2rem;">Wähle eine Probanden-Session zur Auswertung aus.</p>
+
+    <div id="admin-grid" class="grid-container">
+      </div>
+  </div>
+
+  <script>
+    // --- Data Fetching & Dynamic Rendering ---
+    // Executes when the DOM is ready. 
+    // Calls the backend to retrieve all sessions grouped by participant (Proband ID).
+    document.addEventListener('DOMContentLoaded', async () => {
+      const grid = document.getElementById('admin-grid');
+      
+      try {
+        const response = await fetch('api.php?action=get_all_sessions');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+          const probanden = result.data;
+          
+          // --- Participant Card Construction ---
+          // Iterates over each participant and builds a dedicated card containing their history.
+          for (const [probandId, sessions] of Object.entries(probanden)) {
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.alignItems = 'flex-start';
+            card.style.justifyContent = 'flex-start';
+            
+            // Card Header
+            let html = `
+              <h2 style="color: var(--color-yellow); font-size: 1.5rem; width: 100%; border-bottom: 2px solid var(--color-purple); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+                Proband: ${probandId}
+              </h2>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem; width: 100%;">
+            `;
+
+            // --- Session Links ---
+            // Generates action buttons for each session belonging to the participant. 
+            // Each session includes a link to the detailed evaluation view and the clean print view.
+            sessions.forEach((session, index) => {
+              const date = new Date(session.created_at).toLocaleString('de-DE', {
+                day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+              });
+              
+              // Links to the evaluation view with the session ID passed as a URL parameter
+              html += `
+                <a href="admin_session.html?session_id=${session.session_id}" class="btn-primary" style="text-decoration: none; width: 100%; justify-content: space-between;">
+                  <span>Session ${sessions.length - index}</span>
+                  <span style="font-size: 0.8rem; font-weight: normal; opacity: 0.8;">${date}</span>
+                </a>
+                <a href="admin_print.html?session_id=${session.session_id}" class="btn-primary" style="text-decoration: none; flex: 1; font-size: 0.9rem; padding: 0.5rem; background: var(--color-purple); border-color: var(--color-purple);">
+                      Storyboard
+                    </a>
+              `;
+            });
+
+            html += `</div>`;
+            card.innerHTML = html;
+            grid.appendChild(card);
+          }
+        }
+      } catch (e) {
+        // Catches network issues if the API is unreachable
+        console.error("Fehler beim Laden der Sessions:", e);
+        grid.innerHTML = "<p>Fehler beim Laden der Daten aus der Datenbank.</p>";
+      }
+    });
+  </script>
+</body>
+<!-- http://localhost/Bachelorarbeit/admin.html -->
+</html>

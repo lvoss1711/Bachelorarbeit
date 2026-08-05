@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- --- Document Setup & Styles --- -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spielboard - My Overview</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    .readonly-frame {
+      width: 400px;
+      background: var(--color-card-dark);
+      border-radius: 1rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 10px 15px rgba(0,0,0,0.2);
+    }
+    .task-divider {
+      width: 100%;
+      border-bottom: 2px dashed rgba(255,255,255,0.3);
+      margin: 4rem 0 2rem 0;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- --- Top Navigation --- -->
+  <!-- Provides a quick back-link to return to the interactive storyboard editor. -->
+  <nav class="main-nav">
+    <a href="storyboard.html" class="nav-icon" title="Storyboard" style="text-decoration: none;">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      <span style="margin-left: 0.5rem; font-weight: bold; font-size: 1.2rem;">Storyboard</span>
+    </a>
+  </nav>
+  
+  <!-- --- Action Button --- -->
+  <!-- Fixed floating button that prompts the participant to complete the final interview/questionnaire. -->
+  <button id="finish-btn" style="position: fixed; bottom: 2rem; right: 2rem; background: var(--color-danger); color: white; text-decoration: none; box-shadow: 0 10px 15px rgba(0,0,0,0.4); z-index: 100; font-size: 1.2rem; padding: 1rem 1.5rem; border-radius: 1rem; border: 2px solid rgba(255,255,255,0.2); cursor: pointer;">
+    Take questionnaire
+  </button>
+
+  <!-- --- Main Overview Container --- -->
+  <!-- Dynamic placeholder container where the participant's ID and chronological storyboards will be injected. -->
+  <div class="page-container" style="max-width: 1400px; padding-top: 6rem; margin: 0 auto; display: block;">
+    <h1 class="neon-text" style="font-size: 7rem; margin-bottom: 1rem; text-align: center;">My Overview</h1>
+    <p id="proband-title" style="margin-bottom: 3rem; font-size: 1.5rem; color: var(--color-yellow); font-weight: bold; text-align: center;">Loading...</p>
+
+    <div id="tasks-view" style="width: 100%;">
+      <p>Loading Storyboards...</p>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // --- Session Validation ---
+      // Checks for an active session ID in local storage; redirects to the login screen if missing.
+      const sessionId = localStorage.getItem('session_id');
+      if (!sessionId) {
+        alert("Keine aktive Session gefunden!");
+        window.location.href = 'start.html';
+        return;
+      }
+
+      // --- Supervisor Confirmation Modal ---
+      // Generates a custom modal overlay requiring confirmation before redirecting to the final questionnaire.
+      function showSupervisorModal(onComplete) {
+          const overlay = document.createElement('div');
+          overlay.className = 'custom-modal-overlay';
+          const modal = document.createElement('div');
+          modal.className = 'custom-modal';
+
+          const text = document.createElement('p');
+          text.innerText = "Inform the study supervisor.";
+          text.style.fontWeight = "bold";
+          text.style.fontSize = "2rem";
+          text.style.marginBottom = "1.5rem";
+
+          const btnContainer = document.createElement('div');
+          btnContainer.style.display = "flex";
+          btnContainer.style.gap = "1rem"; 
+
+          const cancelBtn = document.createElement('button');
+          cancelBtn.className = 'btn-cancel';
+          cancelBtn.style.flex = "1";
+          cancelBtn.style.borderRadius = "15px";
+          cancelBtn.style.fontSize = "20px";
+          cancelBtn.innerText = 'Cancel';
+
+          const confirmBtn = document.createElement('button');
+          confirmBtn.className = 'btn-primary';
+          confirmBtn.style.flex = "1";
+          confirmBtn.style.fontSize = "20px";
+          confirmBtn.style.background = '#4BADB5';
+          confirmBtn.style.color = 'white';
+          confirmBtn.innerText = 'Interview already completed';
+
+          btnContainer.appendChild(cancelBtn);
+          btnContainer.appendChild(confirmBtn);
+          modal.appendChild(text);
+          modal.appendChild(btnContainer);
+          overlay.appendChild(modal);
+          document.body.appendChild(overlay);
+
+          // Trigger smooth fade-in animation
+          setTimeout(() => overlay.classList.add('active'), 10);
+
+          // Cancel button dismisses the modal without taking action
+          cancelBtn.addEventListener('click', () => { 
+              overlay.classList.remove('active');
+              setTimeout(() => overlay.remove(), 300); 
+          });
+
+          // Confirm button closes the modal and executes the callback workflow
+          confirmBtn.addEventListener('click', () => { 
+              overlay.classList.remove('active');
+              setTimeout(() => overlay.remove(), 300); 
+              onComplete(); 
+          });
+      }
+
+      // --- Questionnaire Trigger Hook ---
+      const finishBtn = document.getElementById('finish-btn');
+      if (finishBtn) {
+        finishBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          showSupervisorModal(() => {
+            window.location.href = 'questionnaire.html'; // Redirects only after explicit confirmation
+          });
+        });
+      }
+
+      // --- Data Fetching & Parsing ---
+      // Fetches the multi-session overview data for the current study participant from the backend API.
+      try {
+        const response = await fetch(`api.php?action=get_proband_overview&session_id=${sessionId}`);
+        const data = await response.json();
+
+        if (!data.success) throw new Error(data.error);
+
+        document.getElementById('proband-title').innerText = `Proband ID: ${data.proband_id}`;
+
+        // --- Render Storyboards ---
+        const tasksView = document.getElementById('tasks-view');
+        tasksView.innerHTML = "";
+
+        // Predefined title labels mapping to chronological study sessions
+        const taskTitles = ["Introduction", "Task 1-3"];
+
+        if (data.sessions && data.sessions.length > 0) {
+            
+            // Loop through each session and group frames into scenes for structured display
+            data.sessions.forEach((sId, index) => {
+                const taskTitle = taskTitles[index] || `Task ${index + 1}`;
+                const sessionFrames = data.frames.filter(f => f.session_id === sId);
+                
+                let sessionHtml = `
+                    <div class="task-divider"></div>
+                    <h1 class="neon-text" style="font-size: 3.5rem; margin-bottom: 2rem;">${taskTitle}</h1>
+                `;
+
+                if (sessionFrames.length === 0) {
+                    sessionHtml += `<p style="margin-bottom: 2rem;">Keine Storyboards in dieser Session erstellt.</p>`;
+                } else {
+                    const scenes = {};
+                    sessionFrames.forEach(frame => {
+                        const sceneId = frame.scene_frame_id.split('.')[0];
+                        if (!scenes[sceneId]) scenes[sceneId] = [];
+                        scenes[sceneId].push(frame);
+                    });
+
+                    // Sort and render each scene and its corresponding frames
+                    Object.keys(scenes).sort((a, b) => a - b).forEach(sceneId => {
+                        sessionHtml += `<div style="width: 100%;">
+                                          <h2 class="scene-title">Scene ${sceneId}</h2>
+                                          <div class="scene-container" style="margin-bottom: 2rem;">
+                                              <div class="frames-wrapper">`;
+                        
+                        scenes[sceneId].sort((a, b) => {
+                            const frameA = parseInt(a.scene_frame_id.split('.')[1]);
+                            const frameB = parseInt(b.scene_frame_id.split('.')[1]);
+                            return frameA - frameB;
+                        }).forEach(frame => {
+                            const mainImg = frame.result_base64 && frame.result_base64.length > 10 ? frame.result_base64 : (frame.pose_base64 && frame.pose_base64.length > 10 ? frame.pose_base64 : '');
+                            const poseImg = frame.pose_base64 && frame.pose_base64.length > 10 ? `<div style="height: auto; aspect-ratio: 1344 / 768; border: 2px solid var(--color-yellow); border-radius: 0.5rem; overflow: hidden; margin-top: 0.5rem;"><img src="${frame.pose_base64}" style="width: 100%; height: 100%; object-fit: cover;"></div>` : '';
+                            const imgHtml = mainImg ? `<img src="${mainImg}" style="width: 100%; aspect-ratio: 1344/768; object-fit: cover; border-radius: 0.75rem; border: 2px solid var(--color-purple);">` : `<div style="width: 100%; aspect-ratio: 1344/768; background: #666; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; color: white;">Kein Bild</div>`;
+
+                            sessionHtml += `
+                                <div class="readonly-frame">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <span style="font-weight: bold; color: var(--color-purple);">Frame ${frame.scene_frame_id}</span>
+                                        <span style="background: var(--color-yellow); color: var(--color-bg-dark); padding: 0.2rem 0.6rem; border-radius: 0.5rem; font-size: 0.8rem; font-weight: bold;">
+                                        ${frame.character_name ? frame.character_name : 'Kein Charakter'}
+                                        </span>
+                                    </div>
+                                    ${imgHtml}
+                                    <div style="background: rgba(20, 42, 63, 0.1); padding: 0.75rem; border-radius: 0.5rem; color: var(--color-purple); font-size: 0.9rem;">
+                                        <strong style="color: var(--color-yellow);">Prompt:</strong><br>
+                                        ${frame.prompt_text ? frame.prompt_text : '<i>Kein Text eingegeben</i>'}
+                                    </div>
+                                    ${poseImg}
+                                </div>
+                            `;
+                        });
+                        sessionHtml += `</div></div></div>`;
+                    });
+                }
+                tasksView.innerHTML += sessionHtml;
+            });
+        } else {
+            tasksView.innerHTML = "<p>Es wurden keine Sessions gefunden.</p>";
+        }
+
+      } catch (e) {
+        console.error("Fehler beim Laden der Overview:", e);
+        document.getElementById('tasks-view').innerHTML = "<p>Fehler beim Abrufen der Daten.</p>";
+      }
+    });
+  </script>
+</body>
+</html>

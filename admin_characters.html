@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- --- Document Setup & Styles --- -->
+  <meta charset="UTF-8" />
+  <title>Spielboard - Admin Charaktere</title>
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body>
+
+  <!-- --- Admin Navigation --- -->
+  <!-- Provides a simple back button to return to the main admin dashboard. -->
+  <nav class="main-nav">
+    <a href="admin.html" class="nav-icon" title="Zurück zum Dashboard">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
+      </svg>
+      <span style="margin-left: 0.5rem; font-weight: bold; font-size: 1.2rem;">Zurück</span>
+    </a>
+  </nav>
+
+  <div class="page-container">
+    <h1 class="neon-text" style="font-size: 4rem; margin-bottom: 2rem;">Globale Charaktere</h1>
+
+    <!-- --- Character Creation Form --- -->
+    <!-- Contains the upload areas for the portrait and full-body images, as well as inputs for the character's name and gender. -->
+    <div class="card" style="width: 100%; max-width: 800px; margin-bottom: 3rem;">
+        <h2 style="color: var(--color-yellow); margin-bottom: 1rem;">Neuen Charakter anlegen</h2>
+        
+        <div style="display: flex; gap: 1rem; width: 100%; height: 200px; margin-bottom: 1rem;">
+            <label class="upload-area">
+                <span id="txt-portrait">Portrait hochladen</span>
+                <img id="img-portrait" class="image-preview hidden">
+                <input type="file" id="file-portrait" class="hidden" accept="image/*">
+            </label>
+            <label class="upload-area">
+                <span id="txt-fullbody">Ganzkörper hochladen</span>
+                <img id="img-fullbody" class="image-preview hidden">
+                <input type="file" id="file-fullbody" class="hidden" accept="image/*">
+            </label>
+        </div>
+        
+        <div class="input-group">
+            <input type="text" id="name-input" placeholder="Name des Charakters" class="input-field" />
+            <select id="gender-input" class="input-field" style="max-width: 150px;">
+                <option value="male">Männlich</option>
+                <option value="female">Weiblich</option>
+            </select>
+            <button id="save-btn" class="btn-primary">Speichern</button>
+        </div>
+    </div>
+
+    <!-- --- Character Display Grid --- -->
+    <!-- An empty container that will be populated dynamically by JavaScript with the existing global characters. -->
+    <h2 style="color: var(--color-yellow); margin-bottom: 1rem;">Verfügbare Charaktere</h2>
+    <div id="character-grid" class="grid-container"></div>
+  </div>
+
+  <script>
+    // Local state to temporarily hold the Base64 strings of the uploaded images
+    let pSrc = '', fSrc = '';
+
+    // --- Image Upload Handling ---
+    // Reads selected image files from the user's device and converts them into Base64 strings.
+    // It updates the local state variables and instantly displays the image preview in the UI.
+    const handleUpload = (e, imgEl, txtEl, type) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if(type === 'p') pSrc = event.target.result;
+                else fSrc = event.target.result;
+                imgEl.src = event.target.result;
+                imgEl.classList.remove('hidden');
+                txtEl.classList.add('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Bind the upload handler to the file input elements
+    document.getElementById('file-portrait').addEventListener('change', e => handleUpload(e, document.getElementById('img-portrait'), document.getElementById('txt-portrait'), 'p'));
+    document.getElementById('file-fullbody').addEventListener('change', e => handleUpload(e, document.getElementById('img-fullbody'), document.getElementById('txt-fullbody'), 'f'));
+
+    // --- Data Fetching & Rendering ---
+    // Fetches all globally available characters from the database via the API.
+    // Clears the grid and dynamically injects HTML cards for each character, including a delete button.
+    const loadCharacters = async () => {
+        const res = await fetch('api.php?action=get_global_characters');
+        const data = await res.json();
+        const grid = document.getElementById('character-grid');
+        grid.innerHTML = '';
+        
+        if(data.success && data.characters) {
+            data.characters.forEach(char => {
+                grid.innerHTML += `
+                    <div class="char-card-result" style="height: auto; min-height: 350px;">
+                        <div class="delete-wrapper">
+                            <button onclick="deleteChar(${char.id})" class="btn-danger">X</button>
+                        </div>
+                        <div style="display: flex; gap: 4px; border-radius: 1rem; overflow: hidden; margin-bottom: 1rem;">
+                            <img src="${char.portrait_base64}" style="width: 50%; aspect-ratio: 1; object-fit: cover;">
+                            <img src="${char.fullbody_base64}" style="width: 50%; aspect-ratio: 1; object-fit: cover;">
+                        </div>
+                        <div class="char-name">${char.name} (${char.gender})</div>
+                    </div>`;
+            });
+        }
+    };
+
+    // --- Save Character Logic ---
+    // Validates that all required inputs (name and both images) are provided.
+    // If valid, sends a POST request to the API to save the new global character to the database, then reloads the page.
+    document.getElementById('save-btn').addEventListener('click', async () => {
+        const name = document.getElementById('name-input').value.trim();
+        if(!name || !pSrc || !fSrc) return alert("Bitte alle Felder und Bilder ausfüllen!");
+        
+        document.getElementById('save-btn').innerText = "Speichert...";
+        await fetch('api.php', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'add_global_character', name, gender: document.getElementById('gender-input').value, portrait: pSrc, fullbody: fSrc })
+        });
+        window.location.reload();
+    });
+
+    // --- Delete Character Logic ---
+    // Exposed globally so it can be triggered by the inline 'onclick' handlers in the dynamically generated HTML.
+    // Prompts for confirmation before permanently deleting a global character from the database.
+    window.deleteChar = async (id) => {
+        if(confirm("Diesen Charakter löschen?")) {
+            await fetch('api.php', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'delete_global_character', id })
+            });
+            loadCharacters();
+        }
+    };
+
+    // Initialize the view by loading the characters on page load
+    loadCharacters();
+  </script>
+</body>
+</html>
