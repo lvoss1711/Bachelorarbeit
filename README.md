@@ -36,3 +36,8 @@ These files are reserved for the study supervisor to configure the system and ev
 
 ### 4. Aesthetic
 *   **`style.css`**: The global CSS stylesheet defining the color theme, grid layouts, component cards, and responsive design of the application.
+
+### 5. Sources
+**Fonts**: 'Amity Jack' provided by https://thefontsmagazine.com/, WhenTheStarsAlign provided by https://www.mansgreback.com/, Fredoka provided by https://fonts.google.com/specimen/Fredoka provided by https://typodermicfonts.com/ethnocentric/  
+**ComfyUI workflow reference**: https://mickmumpitz.ai/posts/new-video-create-103261741?utm_medium=clipboard_copy&utm_source=copyLink&utm_campaign=postshare_creator&utm_content=join_link 
+**Use of AI**: Google Gemini was used as a coding assistant and for the formulation of this document.

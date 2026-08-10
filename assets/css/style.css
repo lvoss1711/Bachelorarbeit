@@ -1,7 +1,5 @@
 /* === FONTS === */
-/* Defines the custom typography used throughout the application. 
-   'Fredoka' is imported from Google Fonts for standard UI text, 
-   while local .otf and .ttf files are used for thematic display headers. */
+
 @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap');
 
 @font-face {
