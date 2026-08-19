@@ -13,4 +13,4 @@ This folder contains the code required to setup the 'Spielboard'-application. Th
 These files were used in the thesis for this project and include diagrams, schematics and examples of generated frames.
 
 ### 3. Study
-This folder includes three subfolders.Firstly, **Autoethnographic study** contains all files generated in relation to this study. Meanwhile **Procedure** is a collection of files relevant for the preperation and execution of the user study. Finally, the **Results**-folder, which holds all generated results from the Questionaires, Interviews and Tasks.
+This folder includes three subfolders. Firstly, **Autoethnographic study** contains all files generated in relation to this preliminary study. Meanwhile **Procedure** is a collection of files relevant for the preperation and execution of the core user study. Finally, the **Results**-folder, which holds all generated results from the Questionnaires, Interviews and Tasks.
