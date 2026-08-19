@@ -1,6 +1,6 @@
 # Spielboard - User Study Application
 
-This repository contains the frontend interfaces, administrative tools, and database structure for the "Spielboard" user study. The application is designed to track participant sessions, collect demographic data, and interface with a local ComfyUI AI backend to generate storyboards.
+This repository contains the frontend interfaces, administrative tools, and database structure for the 'Spielboard' user study. The application is designed to track participant sessions, collect demographic data, and interface with a local ComfyUI AI backend to generate storyboards.
 
 ---
 
